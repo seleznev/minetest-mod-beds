@@ -195,7 +195,7 @@ minetest.register_alias("beds:bed", "beds:bed_bottom_blue")
 local timer = 0
 local wait = false
 minetest.register_globalstep(function(dtime)
-	if timer < 2 and not force_check then
+	if timer < 5 and not force_check then
 		timer = timer + dtime
 		return
 	end
