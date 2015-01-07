@@ -192,13 +192,6 @@ minetest.register_alias("beds:bed_bottom", "beds:bed_bottom_blue")
 minetest.register_alias("beds:bed_top", "beds:bed_top_blue")
 minetest.register_alias("beds:bed", "beds:bed_bottom_blue")
 
-beds_player_spawns = {}
-local file = io.open(minetest.get_worldpath().."/beds_player_spawns", "r")
-if file then
-	beds_player_spawns = minetest.deserialize(file:read("*all"))
-	file:close()
-end
-
 local timer = 0
 local wait = false
 minetest.register_globalstep(function(dtime)
@@ -230,23 +223,7 @@ minetest.register_globalstep(function(dtime)
 				wait = false
 			end)
 			wait = true
-			for _,player in ipairs(minetest.get_connected_players()) do
-				beds_player_spawns[player:get_player_name()] = player:getpos()
-			end
-			local file = io.open(minetest.get_worldpath().."/beds_player_spawns", "w")
-			if file then
-				file:write(minetest.serialize(beds_player_spawns))
-				file:close()
-			end
 		end
-	end
-end)
-
-minetest.register_on_respawnplayer(function(player)
-	local name = player:get_player_name()
-	if beds_player_spawns[name] then
-		player:setpos(beds_player_spawns[name])
-		return true
 	end
 end)
 
