@@ -217,7 +217,7 @@ minetest.register_globalstep(function(dtime)
 		end
 
 		if slept_count == online_count and online_count ~= 0 then
-			minetest.chat_send_all("Good night!!!")
+			minetest.chat_send_all("[zzz] " .. slept_count .. " of " .. online_count .. " players slept, skipping to day.")
 			minetest.after(2, function()
 				minetest.env:set_timeofday(0.23)
 				wait = false
