@@ -1,4 +1,5 @@
-local player_in_bed = 0
+local players_in_bed = {}
+local force_check = false
 
 local beds_list = {
 	{ "Red Bed", "red"},
@@ -99,7 +100,7 @@ for i in ipairs(beds_list) do
 			elseif param2 == 3 then
 				pos.x = pos.x-1
 			end
-			if clicker:get_player_name() == meta:get_string("player") then
+			if clicker:get_player_name() == meta:get_string("player") or players_in_bed[clicker:get_player_name()] then
 				if param2 == 0 then
 					pos.x = pos.x-1
 				elseif param2 == 1 then
@@ -113,7 +114,7 @@ for i in ipairs(beds_list) do
 				clicker:set_physics_override(1, 1, 1)
 				clicker:setpos(pos)
 				meta:set_string("player", "")
-				player_in_bed = player_in_bed-1
+				players_in_bed[clicker:get_player_name()] = nil
 			elseif meta:get_string("player") == "" then
 				pos.y = pos.y-1
 				clicker:set_physics_override(0, 0, 0)
@@ -129,8 +130,14 @@ for i in ipairs(beds_list) do
 				end
 				
 				meta:set_string("player", clicker:get_player_name())
-				player_in_bed = player_in_bed+1
+				players_in_bed[clicker:get_player_name()] = true
+				force_check = true
 			end
+		end,
+		
+		can_dig = function(pos, player)
+			local meta = minetest.env:get_meta(pos)
+			return player:get_player_name() ~= meta:get_string("player")
 		end
 	})
 	
@@ -195,30 +202,41 @@ end
 local timer = 0
 local wait = false
 minetest.register_globalstep(function(dtime)
-	if timer<2 then
-		timer = timer+dtime
+	if timer < 2 and not force_check then
+		timer = timer + dtime
 		return
 	end
 	timer = 0
-	
-	local players = #minetest.get_connected_players()
-	if players == player_in_bed and players ~= 0 then
-		if minetest.env:get_timeofday() < 0.2 or minetest.env:get_timeofday() > 0.805 then
-			if not wait then
-				minetest.chat_send_all("Good night!!!")
-				minetest.after(2, function()
-					minetest.env:set_timeofday(0.23)
-					wait = false
-				end)
-				wait = true
-				for _,player in ipairs(minetest.get_connected_players()) do
-					beds_player_spawns[player:get_player_name()] = player:getpos()
-				end
-				local file = io.open(minetest.get_worldpath().."/beds_player_spawns", "w")
-				if file then
-					file:write(minetest.serialize(beds_player_spawns))
-					file:close()
-				end
+	force_check = false
+
+	if wait then
+		return
+	end
+
+	local time_of_day = minetest.env:get_timeofday()
+	if minetest.env:get_timeofday() < 0.2 or minetest.env:get_timeofday() > 0.805 then
+		local online_count = #minetest.get_connected_players()
+		local slept_count = 0
+		for _,player in ipairs(minetest.get_connected_players()) do
+			if players_in_bed[player:get_player_name()] then
+				slept_count = slept_count + 1
+			end
+		end
+
+		if slept_count == online_count and online_count ~= 0 then
+			minetest.chat_send_all("Good night!!!")
+			minetest.after(2, function()
+				minetest.env:set_timeofday(0.23)
+				wait = false
+			end)
+			wait = true
+			for _,player in ipairs(minetest.get_connected_players()) do
+				beds_player_spawns[player:get_player_name()] = player:getpos()
+			end
+			local file = io.open(minetest.get_worldpath().."/beds_player_spawns", "w")
+			if file then
+				file:write(minetest.serialize(beds_player_spawns))
+				file:close()
 			end
 		end
 	end
